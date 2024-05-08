@@ -3773,7 +3773,9 @@ func TestLocalBackendSuggestExitNode(t *testing.T) {
 		lb.lastSuggestedExitNode = tt.lastSuggestedExitNode
 		lb.netMap = &tt.netMap
 		lb.sys.MagicSock.Get().SetLastNetcheckReport(context.Background(), tt.report)
-		got, err := lb.SuggestExitNode()
+		lb.mu.Lock()
+		got, err := lb.suggestExitNodeLocked()
+		lb.mu.Unlock()
 		if got.ID != tt.wantID {
 			t.Errorf("ID=%v, want=%v", got.ID, tt.wantID)
 		}
