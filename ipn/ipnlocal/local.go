@@ -1176,7 +1176,7 @@ func (b *LocalBackend) SetControlClientStatus(c controlclient.Client, st control
 	}
 	if exitNodeIDStr, _ := syspolicy.GetString(syspolicy.ExitNodeID, ""); exitNodeIDStr == "auto" {
 		// if netmap's peers have changed, find new exit node suggestion.
-		if !slices.Equal(st.NetMap.Peers, netMap.Peers) {
+		if st.NetMap != nil && netMap != nil && !slices.Equal(st.NetMap.Peers, netMap.Peers) {
 			res, err := b.suggestExitNodeLocked(true)
 			if err != nil {
 				b.logf("SetControlClientStatus: Failed to update auto exit node")
@@ -3271,16 +3271,16 @@ func (b *LocalBackend) setPrefsLockedOnEntry(newp *ipn.Prefs, unlock unlockOnce)
 		newp.Persist = oldp.Persist().AsStruct() // caller isn't allowed to override this
 	}
 	// if ExitNodeID has the string value auto, use the last suggested exit node.
-	if exitNodeIDStr, _ := syspolicy.GetString(syspolicy.ExitNodeID, ""); exitNodeIDStr == "auto" {
-		if newp.ExitNodeID != b.lastSuggestedExitNode.id {
-			newp.ExitNodeID = b.lastSuggestedExitNode.id
-		}
-	} else {
-		// setExitNodeID returns whether it updated b.prefs, but
-		// everything in this function treats b.prefs as completely new
-		// anyway. No-op if no exit node resolution is needed.
-		setExitNodeID(newp, netMap)
+	//if exitNodeIDStr, _ := syspolicy.GetString(syspolicy.ExitNodeID, ""); exitNodeIDStr == "auto" {
+	if newp.ExitNodeID != b.lastSuggestedExitNode.id {
+		newp.ExitNodeID = b.lastSuggestedExitNode.id
 	}
+	//	} else {
+	// setExitNodeID returns whether it updated b.prefs, but
+	// everything in this function treats b.prefs as completely new
+	// anyway. No-op if no exit node resolution is needed.
+	setExitNodeID(newp, netMap)
+	//}
 	// applySysPolicy does likewise so we can also ignore its return value.
 	applySysPolicy(newp)
 	// We do this to avoid holding the lock while doing everything else.
@@ -4869,7 +4869,7 @@ func (b *LocalBackend) setNetMapLocked(nm *netmap.NetworkMap) {
 	}
 	if exitNodeIDStr, _ := syspolicy.GetString(syspolicy.ExitNodeID, ""); exitNodeIDStr == "auto" {
 		// if netmap's peers have changed, find new exit node suggestion.
-		if !slices.Equal(prevNetMap.Peers, nm.Peers) {
+		if prevNetMap != nil && !slices.Equal(prevNetMap.Peers, nm.Peers) {
 			res, err := b.suggestExitNodeLocked(true)
 			if err != nil {
 				b.logf("Error suggesting exit node %v", err)
